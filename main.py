@@ -1,21 +1,16 @@
 #!/usr/bin/env python3
-"""THE WORLD IN ONE PICTURE: Wednesday 18 November 2026.
+"""THE WORLD IN ONE PICTURE: Wednesday 18 November 2026. Round 2.
 
-A newspaper front page, 1024 by 1024 pixels, drawn with the Python
-standard library only. Four stories from Wednesday 18 November 2026:
+A dense newspaper front page, 1024 by 1024 pixels, drawn with the
+Python standard library only. It sums up 42 stories first reported
+on Wednesday 18 November 2026: 13 illustrated lead cards, a world
+map with numbered pins, 29 one-line briefs, a day-in-numbers strip
+and a date-check footer naming stories left out because they were
+first reported on 17 November.
 
-  * Iran strikes US bases in Kuwait and Bahrain, after the US hit
-    Qeshm Island.
-  * Ukraine hits the Kerch Bridge for a second day.
-  * Xi and Putin meet in Shenzhen ahead of the three-way summit
-    with Trump.
-  * Mary Peltola wins Alaska and the Democrats take a 56-44
-    Senate majority.
-
-Plus a footer with three more items from the day. The program is
-deterministic: no clock, no randomness, no network. It writes
-entry.png to $MAKEFUN_OUTPUT_DIR when that is set, and beside this
-script otherwise.
+The program is deterministic: no clock, no randomness, no network.
+It writes entry.png to $MAKEFUN_OUTPUT_DIR when that is set, and
+beside this script otherwise.
 """
 
 import math
@@ -31,22 +26,23 @@ PAL = {
     "cream": (253, 246, 227),
     "paper": (244, 234, 205),
     "ink": (18, 18, 18),
-    "sky": (178, 216, 240),
-    "night": (38, 52, 96),
-    "night2": (70, 80, 140),
-    "sea": (38, 110, 180),
-    "deep": (24, 80, 150),
-    "grey": (120, 120, 118),
+    "grey": (110, 108, 100),
     "dark": (70, 70, 68),
     "steel": (150, 158, 165),
+    "sky": (178, 216, 240),
+    "sea": (38, 110, 180),
+    "deep": (24, 80, 150),
+    "night": (38, 52, 96),
+    "night2": (70, 80, 140),
+    "land": (196, 178, 130),
+    "land2": (168, 158, 110),
+    "green": (90, 140, 80),
+    "red": (200, 40, 32),
     "orange": (240, 120, 20),
     "flame": (255, 176, 32),
-    "red": (200, 40, 32),
-    "blue": (40, 80, 180),
-    "dusk": (232, 150, 90),
-    "dusk2": (120, 80, 130),
-    "tan": (222, 196, 140),
     "gold": (255, 214, 90),
+    "blue": (40, 80, 180),
+    "white": (255, 255, 255),
     "moon": (240, 230, 200),
     "moonspot": (210, 200, 170),
     "hull": (120, 24, 20),
@@ -59,7 +55,11 @@ PAL = {
     "skin": (250, 220, 190),
     "sun": (255, 220, 140),
     "window": (255, 220, 120),
-    "white": (255, 255, 255),
+    "dusk": (232, 150, 90),
+    "dusk2": (120, 80, 130),
+    "tan": (222, 196, 140),
+    "pink": (232, 140, 160),
+    "teal": (40, 140, 140),
 }
 
 # 5x7 bitmap font. Each glyph is seven rows; each row is a 5-bit
@@ -115,6 +115,13 @@ GLYPHS = {
     ")": (0x08, 0x04, 0x02, 0x02, 0x02, 0x04, 0x08),
     "&": (0x0C, 0x12, 0x14, 0x08, 0x15, 0x12, 0x0D),
     "%": (0x19, 0x1A, 0x02, 0x04, 0x08, 0x0B, 0x13),
+    "+": (0x00, 0x04, 0x04, 0x1F, 0x04, 0x04, 0x00),
+    "=": (0x00, 0x00, 0x1F, 0x00, 0x1F, 0x00, 0x00),
+    "$": (0x04, 0x0F, 0x14, 0x0E, 0x05, 0x1E, 0x04),
+    "#": (0x0A, 0x0A, 0x1F, 0x0A, 0x1F, 0x0A, 0x0A),
+    "*": (0x00, 0x04, 0x15, 0x0E, 0x15, 0x04, 0x00),
+    "@": (0x0E, 0x11, 0x16, 0x1A, 0x10, 0x10, 0x0E),
+    '"': (0x0A, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00),
 }
 BLANK_GLYPH = (0, 0, 0, 0, 0, 0, 0)
 
@@ -161,6 +168,12 @@ class Canvas:
             dx = int((r * r - dy * dy) ** 0.5)
             for xx in range(cx - dx, cx + dx + 1):
                 self.set(xx, cy + dy, color)
+
+    def ring(self, cx, cy, r, color):
+        for a in range(0, 360, 4):
+            rad = math.radians(a)
+            self.set(cx + int(r * math.cos(rad)),
+                     cy + int(r * math.sin(rad)), color)
 
     def segment(self, x0, y0, x1, y1, color, thick=1):
         """Bresenham line, thick pixels wide."""
@@ -232,9 +245,12 @@ class Canvas:
             lines.append(cur)
         return lines
 
-    def wrapped(self, cx, y, text, scale, color, max_w, leading=4):
+    def wrapped(self, cx, y, text, scale, color, max_w, leading=3,
+                max_lines=None):
         """Draw word-wrapped centered text; return the height used."""
         lines = self.wrap(text, scale, max_w)
+        if max_lines is not None:
+            lines = lines[:max_lines]
         step = 7 * scale + leading
         for i, ln in enumerate(lines):
             self.centered(cx, y + i * step, ln, scale, color)
@@ -262,214 +278,536 @@ def write_png(canvas, path):
     return len(png)
 
 
-# ---- Lead scene: drones over the Gulf at night ----
+# ---- Lead scenes: one small original illustration per card ----
+# Each scene draws into the box (px, py, pw, ph) using fractions of
+# its width and height, so it works in both card widths.
+
+
 def scene_gulf(cv, px, py, pw, ph):
-    ink = PAL["ink"]
+    """Night over the Gulf: drones, flares, a base on the shore."""
     cv.rect(px, py, pw, ph, PAL["night"])
-    horizon = py + int(ph * 0.42)
-    cv.rect(px, horizon, pw, ph - int(ph * 0.42), PAL["night2"])
-    # stars
-    for sx, sy in ((30, 18), (90, 40), (150, 14), (220, 34), (300, 16),
-                   (380, 38), (450, 20), (500, 44), (60, 66), (260, 62),
-                   (410, 66), (520, 70)):
-        cv.set(px + sx, py + sy, PAL["gold"])
-        cv.set(px + sx + 1, py + sy, PAL["gold"])
-    # low moon with craters
-    cv.disc(px + pw - 70, py + 52, 26, PAL["moon"])
-    cv.disc(px + pw - 78, py + 46, 6, PAL["moonspot"])
-    cv.disc(px + pw - 62, py + 60, 4, PAL["moonspot"])
-    sea_y = py + int(ph * 0.60)
-    cv.rect(px, sea_y, pw, ph - int(ph * 0.60), PAL["deep"])
-    # moonlight path on the water
-    for wx in range(px + pw - 110, px + pw - 30, 8):
-        cv.segment(wx, sea_y + 18, wx + 34, sea_y + 18,
-                   (120, 150, 200), 2)
-        cv.segment(wx + 8, sea_y + 44, wx + 28, sea_y + 44,
-                   (120, 150, 200), 2)
-    # tanker: dark hull, lit deck houses, flames midship
-    hull_y = sea_y - 26
-    cv.rect(px + 40, hull_y, pw - 110, 40, PAL["hull"])
-    cv.rect(px + 40, hull_y + 40, pw - 110, 8, ink)
-    cv.rect(px + 56, hull_y - 40, 64, 40, PAL["deck"])
-    cv.rect(px + pw - 150, hull_y - 58, 74, 58, PAL["deck2"])
-    cv.rect(px + pw - 138, hull_y - 52, 12, 12, PAL["gold"])
-    cv.rect(px + pw - 118, hull_y - 52, 12, 12, PAL["gold"])
-    cv.rect(px + pw - 138, hull_y - 34, 12, 12, PAL["gold"])
-    # flames bursting from the deck
-    for fx, fh in ((px + 190, 56), (px + 224, 76), (px + 258, 58),
-                   (px + 292, 68), (px + 326, 50)):
-        cv.polygon([(fx - 18, hull_y), (fx, hull_y - fh),
-                    (fx + 18, hull_y)], PAL["orange"])
-        cv.polygon([(fx - 10, hull_y), (fx, hull_y - fh + 22),
-                    (fx + 10, hull_y)], PAL["flame"])
-    # black smoke rolling up
-    cv.disc(px + 230, hull_y - 66, 16, ink)
-    cv.disc(px + 258, hull_y - 84, 18, PAL["dark"])
-    cv.disc(px + 228, hull_y - 96, 13, PAL["dark"])
-    cv.disc(px + 262, hull_y - 108, 11, PAL["grey"])
-    # two drones diving in from the sky, bright heads, dotted trails
-    cv.segment(px + 60, py + 20, px + 170, py + 108, PAL["white"], 2)
-    cv.disc(px + 172, py + 110, 7, PAL["flame"])
-    cv.segment(px + 330, py + 14, px + 420, py + 96, PAL["white"], 2)
-    cv.disc(px + 422, py + 98, 7, PAL["flame"])
+    sea_y = py + int(ph * 0.62)
+    cv.rect(px, sea_y, pw, ph - int(ph * 0.62), PAL["deep"])
+    for sx, sy in ((8, 6), (30, 14), (55, 5), (78, 12), (92, 4)):
+        cv.set(px + int(sx * pw / 100), py + int(sy * ph / 100),
+               PAL["gold"])
+    cv.disc(px + int(pw * 0.86), py + int(ph * 0.22),
+            max(3, ph // 6), PAL["moon"])
+    # two drones diving in, bright heads and dotted trails
+    cv.segment(px + int(pw * 0.12), py + 2,
+               px + int(pw * 0.38), sea_y - 4, PAL["white"], 1)
+    cv.disc(px + int(pw * 0.38), sea_y - 4, 3, PAL["flame"])
+    cv.segment(px + int(pw * 0.62), py + 2,
+               px + int(pw * 0.78), sea_y - 6, PAL["white"], 1)
+    cv.disc(px + int(pw * 0.78), sea_y - 6, 3, PAL["flame"])
+    # air base on the shore: runway lights and a hangar
+    cv.rect(px + int(pw * 0.05), sea_y + 2, int(pw * 0.9), 2, PAL["gold"])
+    cv.rect(px + int(pw * 0.08), sea_y + 6, int(pw * 0.24),
+            ph - int(ph * 0.62) - 8, PAL["deck"])
+    cv.rect(px + int(pw * 0.62), sea_y + 4, int(pw * 0.30),
+            ph - int(ph * 0.62) - 6, PAL["steel"])
+    # interceptor burst over the base
+    cv.disc(px + int(pw * 0.5), sea_y - 8, 4, PAL["orange"])
+    cv.disc(px + int(pw * 0.5), sea_y - 8, 2, PAL["flame"])
 
 
-# ---- Scene: the Kerch Bridge, broken ----
-def scene_kerch(cv, px, py, pw, ph):
-    cv.rect(px, py, pw, ph, PAL["sky"])
-    water_y = py + int(ph * 0.62)
-    cv.rect(px, water_y, pw, ph - int(ph * 0.62), PAL["sea"])
-    cv.disc(px + pw - 52, py + 34, 22, PAL["gold"])
-    deck_y = py + int(ph * 0.44)
-    # left span stands, right span stands, the middle is gone
-    cv.rect(px + 8, deck_y, pw // 2 - 52, 12, PAL["steel"])
-    cv.rect(px + pw // 2 + 40, deck_y, pw // 2 - 48, 12, PAL["steel"])
-    # arch over the left span
-    cv.segment(px + 30, deck_y, px + pw // 4, deck_y - 64,
-               PAL["dark"], 4)
-    cv.segment(px + pw // 4, deck_y - 64, px + pw // 2 - 52, deck_y,
-               PAL["dark"], 4)
-    # right tower leaning after the blast
-    cv.segment(px + pw - 96, deck_y, px + pw - 66, deck_y - 78,
-               PAL["dark"], 6)
-    # deck slabs tumbling into the strait
-    cv.polygon([(px + pw // 2 - 44, deck_y), (px + pw // 2 - 12, deck_y),
-                (px + pw // 2 - 22, deck_y + 42),
-                (px + pw // 2 - 50, deck_y + 28)], PAL["steel"])
-    cv.polygon([(px + pw // 2 + 6, deck_y + 8), (px + pw // 2 + 30, deck_y + 4),
-                (px + pw // 2 + 22, deck_y + 34),
-                (px + pw // 2 + 2, deck_y + 30)], PAL["dark"])
-    # smoke from the gap
-    cv.disc(px + pw // 2 - 6, deck_y - 20, 14, PAL["dark"])
-    cv.disc(px + pw // 2 + 8, deck_y - 40, 16, PAL["grey"])
-    cv.disc(px + pw // 2 - 2, deck_y - 58, 12, PAL["grey"])
-    # splash rings where the span fell
-    for rx, ry, rr in ((pw // 2 - 18, water_y + 34, 22),
-                       (pw // 2 + 14, water_y + 52, 16)):
-        for a in range(0, 360, 8):
-            cv.set(px + rx + int(rr * math.cos(math.radians(a))),
-                   py + ry + int(rr * 0.55 * math.sin(math.radians(a))),
-                   PAL["white"])
-    # waves
-    for wx in range(px + 8, px + pw - 8, 40):
-        cv.segment(wx, water_y + 66, wx + 22, water_y + 66,
-                   PAL["white"], 2)
-
-
-# ---- Scene: three flags over the Shenzhen skyline ----
 def scene_summit(cv, px, py, pw, ph):
-    ink = PAL["ink"]
+    """Three flags over the Shenzhen skyline at dusk."""
     cv.rect(px, py, pw, ph, PAL["dusk"])
-    cv.rect(px, py + int(ph * 0.40), pw, ph - int(ph * 0.40),
+    cv.rect(px, py + int(ph * 0.45), pw, ph - int(ph * 0.45),
             PAL["dusk2"])
-    cv.disc(px + pw - 56, py + 30, 18, PAL["sun"])
+    cv.disc(px + int(pw * 0.88), py + int(ph * 0.2),
+            max(3, ph // 7), PAL["sun"])
     # skyline towers with lit windows
-    towers = [(6, 96, 52, 100), (62, 66, 46, 130), (112, 104, 54, 92),
-              (170, 56, 50, 140), (224, 88, 46, 108), (274, 70, 18, 126)]
-    for tx, ty, tw, th in towers:
-        base_y = py + ph - th - 46
-        cv.rect(px + tx, base_y, tw, th, PAL["tower"])
-        for wy in range(base_y + 10, py + ph - 56, 20):
-            for wx in range(px + tx + 7, px + tx + tw - 7, 16):
-                cv.rect(wx, wy, 6, 8, PAL["window"])
-    ground_y = py + ph - 46
-    cv.rect(px, ground_y, pw, 46, PAL["ground"])
-    # three flags on poles: China red, US stripes, Russia white-blue-red
-    flag_x = [px + 34, px + pw // 2 - 22, px + pw - 84]
+    for i in range(6):
+        tx = px + int(pw * (0.02 + i * 0.16))
+        tw = int(pw * 0.12)
+        th = int(ph * (0.35 + (i % 3) * 0.12))
+        base_y = py + ph - th - int(ph * 0.18)
+        cv.rect(tx, base_y, tw, th, PAL["tower"])
+        cv.rect(tx + 2, base_y + 4, 3, 4, PAL["window"])
+        cv.rect(tx + tw - 5, base_y + th // 2, 3, 4, PAL["window"])
+    ground_y = py + ph - int(ph * 0.18)
+    cv.rect(px, ground_y, pw, int(ph * 0.18), PAL["ground"])
+    # three flags: China red, US stripes, Russia white-blue-red
     flag_cols = [(PAL["red"], PAL["red"], PAL["red"]),
                  (PAL["red"], PAL["white"], PAL["blue"]),
                  (PAL["white"], PAL["blue"], PAL["red"])]
-    for fx, cols in zip(flag_x, flag_cols):
-        cv.vline(fx, py + 12, 62, ink, 3)
+    for j, cols in enumerate(flag_cols):
+        fx = px + int(pw * (0.12 + j * 0.32))
+        cv.vline(fx, py + 2, int(ph * 0.42), PAL["ink"], 2)
         for i, col in enumerate(cols):
-            cv.rect(fx + 3, py + 12 + i * 11, 40, 11, col)
-        # small stars on the all-red flag
-        if cols[0] == PAL["red"] and cols[1] == PAL["red"]:
-            for sx, sy in ((8, 16), (20, 20), (28, 28)):
-                cv.set(fx + 3 + sx, py + 12 + sy, PAL["gold"])
-    # three leaders seated at one table
-    for fx in (px + 56, px + pw // 2 - 16, px + pw - 108):
-        cv.disc(fx + 18, ground_y + 6, 8, PAL["skin"])
-        cv.rect(fx + 7, ground_y + 15, 22, 24, ink)
-    cv.rect(px + 40, ground_y + 32, pw - 80, 5, PAL["table"])
+            cv.rect(fx + 2, py + 2 + i * 4, int(pw * 0.13), 4, col)
 
 
-# ---- Scene: the Senate count, 56 to 44 ----
-def scene_senate(cv, px, py, pw, ph):
-    ink = PAL["ink"]
+def scene_cop(cv, px, py, pw, ph):
+    """A globe, a smoking stack and a green leaf: the climate split."""
+    cv.rect(px, py, pw, ph, PAL["sky"])
+    cx, cy = px + int(pw * 0.26), py + ph // 2
+    r = int(ph * 0.36)
+    cv.disc(cx, cy, r, PAL["sea"])
+    cv.disc(cx - r // 3, cy - r // 4, r // 3, PAL["green"])
+    cv.disc(cx + r // 3, cy + r // 4, r // 4, PAL["green"])
+    cv.ring(cx, cy, r, PAL["ink"])
+    # factory with two stacks on the right
+    bx = px + int(pw * 0.55)
+    cv.rect(bx, py + int(ph * 0.45), int(pw * 0.4), int(ph * 0.55),
+            PAL["dark"])
+    cv.rect(bx + int(pw * 0.06), py + int(ph * 0.2),
+            int(pw * 0.07), int(ph * 0.25), PAL["steel"])
+    cv.rect(bx + int(pw * 0.22), py + int(ph * 0.3),
+            int(pw * 0.07), int(ph * 0.15), PAL["steel"])
+    cv.disc(bx + int(pw * 0.09), py + int(ph * 0.12), 4, PAL["grey"])
+    cv.disc(bx + int(pw * 0.13), py + int(ph * 0.06), 3, PAL["grey"])
+    # a green leaf rising above the smoke
+    lx, ly = px + int(pw * 0.82), py + int(ph * 0.14)
+    cv.polygon([(lx, ly - 6), (lx + 7, ly), (lx, ly + 6), (lx - 7, ly)],
+               PAL["green"])
+    cv.segment(lx, ly - 6, lx, ly + 8, PAL["green"], 1)
+
+
+def scene_gaza(cv, px, py, pw, ph):
+    """A white flag on a broken wall, dusk over Gaza."""
+    cv.rect(px, py, pw, ph, PAL["dusk"])
+    cv.disc(px + int(pw * 0.85), py + int(ph * 0.25),
+            max(3, ph // 7), PAL["sun"])
+    # broken wall: blocks at two heights
+    wy = py + int(ph * 0.55)
+    for i in range(7):
+        bw = int(pw * 0.13)
+        bx = px + i * bw
+        bh = int(ph * (0.30 + (0.15 if i % 2 else 0.0)))
+        cv.rect(bx, wy + int(ph * 0.45) - bh, bw - 2, bh, PAL["tan"])
+    cv.rect(px, wy + int(ph * 0.45), pw, 3, PAL["ink"])
+    # white flag on a pole above the wall
+    fx = px + int(pw * 0.5)
+    cv.vline(fx, py + int(ph * 0.12), int(ph * 0.45), PAL["ink"], 2)
+    cv.rect(fx + 2, py + int(ph * 0.12), int(pw * 0.16),
+            int(ph * 0.2), PAL["white"])
+    # a small dove above the flag
+    dx, dy = px + int(pw * 0.2), py + int(ph * 0.2)
+    cv.disc(dx, dy, 3, PAL["white"])
+    cv.segment(dx - 8, dy - 2, dx - 2, dy, PAL["white"], 2)
+    cv.segment(dx + 2, dy, dx + 8, dy - 3, PAL["white"], 2)
+
+
+def scene_bangladesh(cv, px, py, pw, ph):
+    """Garment workers, a factory and a wage banner."""
     cv.rect(px, py, pw, ph, PAL["paper"])
-    # ballot box with a big check
-    box_x, box_y = px + pw // 2 - 52, py + 12
-    cv.rect(box_x, box_y, 104, 64, PAL["box"])
-    cv.rect(box_x - 10, box_y - 12, 124, 14, ink)
-    cv.rect(box_x + 36, box_y - 12, 32, 4, PAL["cream"])
-    cv.segment(box_x + 22, box_y + 34, box_x + 44, box_y + 56,
-               PAL["red"], 7)
-    cv.segment(box_x + 44, box_y + 56, box_x + 84, box_y + 12,
-               PAL["red"], 7)
-    cv.centered(px + pw // 2, box_y + 82, "ALASKA DECIDES", 2, ink)
-    # the tally bar: 56 blue, 44 red
-    bar_y = py + ph - 58
-    bar_w = pw - 40
-    dem_w = int(bar_w * 56 / 100)
-    cv.rect(px + 20, bar_y, dem_w, 30, PAL["blue"])
-    cv.rect(px + 20 + dem_w, bar_y, bar_w - dem_w, 30, PAL["red"])
-    for t in range(2):
-        cv.hline(px + 20, bar_y + t, bar_w, ink)
-        cv.hline(px + 20, bar_y + 29 - t, bar_w, ink)
-        cv.vline(px + 20 + t, bar_y, 30, ink)
-        cv.vline(px + 20 + bar_w - 1 - t, bar_y, 30, ink)
-    cv.text(px + 30, bar_y + 8, "DEM 56", 2, PAL["white"])
-    cv.text(px + 20 + dem_w + 12, bar_y + 8, "GOP 44", 2, PAL["white"])
+    # factory block with chimneys
+    cv.rect(px + int(pw * 0.55), py + int(ph * 0.35), int(pw * 0.42),
+            int(ph * 0.65), PAL["red"])
+    cv.rect(px + int(pw * 0.6), py + int(ph * 0.1), int(pw * 0.06),
+            int(ph * 0.25), PAL["steel"])
+    cv.rect(px + int(pw * 0.75), py + int(ph * 0.18), int(pw * 0.06),
+            int(ph * 0.17), PAL["steel"])
+    for i in range(3):
+        cv.rect(px + int(pw * (0.6 + i * 0.12)), py + int(ph * 0.55),
+                int(pw * 0.06), int(ph * 0.18), PAL["gold"])
+    # three workers holding a banner
+    by = py + int(ph * 0.40)
+    cv.rect(px + int(pw * 0.04), by, int(pw * 0.44), int(ph * 0.24),
+            PAL["white"])
+    cv.frame(px + int(pw * 0.04), by, int(pw * 0.44), int(ph * 0.24),
+             PAL["ink"], 1)
+    cv.text(px + int(pw * 0.07), by + 2, "TK30,000", 1, PAL["red"])
+    for i in range(3):
+        fx = px + int(pw * (0.08 + i * 0.14))
+        cv.disc(fx, by + int(ph * 0.38), 3, PAL["skin"])
+        cv.rect(fx - 3, by + int(ph * 0.42), 6, int(ph * 0.22),
+                PAL["blue"] if i % 2 == 0 else PAL["teal"])
 
 
-def lead_panel(cv, px, py, pw, ph, scene, headline, caption):
-    """Wide panel: picture on the left, headline and caption right."""
-    ink = PAL["ink"]
+def scene_voyager(cv, px, py, pw, ph):
+    """Voyager 1 in deep space, one light-day out."""
+    cv.rect(px, py, pw, ph, PAL["ink"])
+    for sx, sy in ((6, 8), (18, 20), (32, 6), (48, 16), (64, 8),
+                   (80, 22), (92, 10), (12, 70), (40, 80), (70, 72)):
+        cv.set(px + int(sx * pw / 100), py + int(sy * ph / 100),
+               PAL["white"])
+    # the probe: gold body, big dish, long boom
+    cx, cy = px + int(pw * 0.5), py + ph // 2
+    cv.rect(cx - 12, cy - 5, 24, 10, PAL["gold"])
+    cv.segment(cx - 12, cy, cx - 30, cy - 10, PAL["steel"], 2)
+    cv.disc(cx - 30, cy - 10, 3, PAL["white"])
+    cv.segment(cx + 12, cy, cx + 34, cy + 8, PAL["white"], 1)
+    cv.disc(cx + 34, cy + 8, 2, PAL["flame"])
+    # signal rings travelling home
+    for r in (10, 16, 22):
+        cv.ring(cx - 34, cy - 12, r, PAL["sky"])
+    # a small Earth, far behind
+    cv.disc(px + int(pw * 0.06), py + int(ph * 0.82), 4, PAL["sea"])
+    cv.disc(px + int(pw * 0.06) - 1, py + int(ph * 0.82) - 1, 2,
+            PAL["green"])
+
+
+def scene_haiti(cv, px, py, pw, ph):
+    """A helicopter over a hillside mansion in Haiti."""
+    cv.rect(px, py, pw, ph, PAL["sky"])
+    # green hill
+    hy = py + int(ph * 0.55)
+    cv.polygon([(px, py + ph), (px, hy + 8),
+                (px + int(pw * 0.5), hy - 6),
+                (px + pw, hy + 4), (px + pw, py + ph)], PAL["green"])
+    # the mansion on the hill
+    hx = px + int(pw * 0.55)
+    cv.rect(hx, hy - 14, int(pw * 0.3), 14, PAL["white"])
+    cv.rect(hx + 2, hy - 20, int(pw * 0.12), 6, PAL["red"])
+    cv.rect(hx + int(pw * 0.08), hy - 8, 5, 8, PAL["blue"])
+    cv.rect(hx + int(pw * 0.2), hy - 8, 5, 8, PAL["blue"])
+    # helicopter above, rotor spinning
+    cx, cy = px + int(pw * 0.22), py + int(ph * 0.22)
+    cv.rect(cx - 12, cy - 4, 24, 8, PAL["dark"])
+    cv.segment(cx - 18, cy - 7, cx + 18, cy - 7, PAL["ink"], 2)
+    cv.segment(cx + 12, cy, cx + 20, cy + 6, PAL["ink"], 2)
+    # smoke rising from the mansion
+    cv.disc(hx + int(pw * 0.15), hy - 26, 5, PAL["grey"])
+    cv.disc(hx + int(pw * 0.2), hy - 34, 4, PAL["grey"])
+    cv.disc(hx + int(pw * 0.12), hy - 40, 3, PAL["white"])
+
+
+def scene_odesa(cv, px, py, pw, ph):
+    """Odesa at night: skyline, a blast, and a shield of interceptors."""
+    cv.rect(px, py, pw, ph, PAL["night"])
+    for sx, sy in ((10, 6), (28, 12), (50, 5), (72, 10), (90, 6)):
+        cv.set(px + int(sx * pw / 100), py + int(sy * ph / 100),
+               PAL["gold"])
+    # skyline with lit windows
+    gy = py + int(ph * 0.72)
+    for i in range(5):
+        bx = px + int(pw * (0.04 + i * 0.19))
+        bw = int(pw * 0.15)
+        bh = int(ph * (0.28 + (i % 3) * 0.08))
+        cv.rect(bx, gy - bh, bw, bh, PAL["tower"])
+        cv.rect(bx + 3, gy - bh + 4, 3, 4, PAL["window"])
+    cv.rect(px, gy, pw, ph - int(ph * 0.72), PAL["ground"])
+    # blast over the city
+    bx, by = px + int(pw * 0.68), py + int(ph * 0.3)
+    cv.disc(bx, by, 6, PAL["orange"])
+    cv.disc(bx, by, 3, PAL["flame"])
+    cv.disc(bx - 10, by + 8, 4, PAL["grey"])
+    cv.disc(bx + 10, by - 6, 3, PAL["grey"])
+    # interceptor streaks crossing the sky
+    cv.segment(px + int(pw * 0.05), py + int(ph * 0.15),
+               px + int(pw * 0.3), py + int(ph * 0.4), PAL["white"], 1)
+    cv.segment(px + int(pw * 0.35), py + int(ph * 0.08),
+               px + int(pw * 0.55), py + int(ph * 0.35), PAL["white"], 1)
+
+
+def scene_badme(cv, px, py, pw, ph):
+    """Two armies face off across a dry border valley."""
+    cv.rect(px, py, pw, ph, PAL["tan"])
+    cv.disc(px + int(pw * 0.85), py + int(ph * 0.2),
+            max(3, ph // 7), PAL["sun"])
+    # mountains on both sides
+    cv.polygon([(px, py + int(ph * 0.5)), (px + int(pw * 0.25),
+                py + int(ph * 0.18)), (px + int(pw * 0.5),
+                py + int(ph * 0.5))], PAL["dark"])
+    cv.polygon([(px + int(pw * 0.5), py + int(ph * 0.5)),
+                (px + int(pw * 0.75), py + int(ph * 0.22)),
+                (px + pw, py + int(ph * 0.5))], PAL["dark"])
+    # the border line down the middle
+    cv.vline(px + pw // 2, py + int(ph * 0.5), int(ph * 0.5),
+             PAL["red"], 2)
+    # two flags facing each other
+    for j, col in enumerate((PAL["green"], PAL["red"])):
+        fx = px + int(pw * (0.3 + j * 0.32))
+        cv.vline(fx, py + int(ph * 0.52), int(ph * 0.3), PAL["ink"], 2)
+        cv.rect(fx + 2, py + int(ph * 0.52), int(pw * 0.1),
+                int(ph * 0.12), col)
+    # tents at the foot of the valley
+    for i in range(3):
+        tx = px + int(pw * (0.08 + i * 0.12))
+        cv.polygon([(tx, py + ph - 4), (tx + 8, py + int(ph * 0.78)),
+                    (tx + 16, py + ph - 4)], PAL["white"])
+
+
+def scene_gta(cv, px, py, pw, ph):
+    """Neon city night: the GTA VI launch."""
+    cv.rect(px, py, pw, ph, PAL["night"])
+    # neon skyline
+    for i in range(6):
+        bx = px + int(pw * (0.02 + i * 0.16))
+        bw = int(pw * 0.12)
+        bh = int(ph * (0.4 + (i % 3) * 0.12))
+        cv.rect(bx, py + ph - bh - int(ph * 0.14), bw, bh,
+                PAL["tower"])
+        cv.rect(bx + 2, py + ph - bh - int(ph * 0.14) + 4, 3, 4,
+                PAL["pink"] if i % 2 else PAL["gold"])
+    cv.rect(px, py + ph - int(ph * 0.14), pw, int(ph * 0.14),
+            PAL["ground"])
+    # big neon VI in the sky
+    vx = px + int(pw * 0.38)
+    vy = py + int(ph * 0.12)
+    cv.segment(vx, vy, vx + 8, vy + 14, PAL["pink"], 3)
+    cv.segment(vx + 8, vy + 14, vx + 16, vy, PAL["pink"], 3)
+    cv.segment(vx + 24, vy, vx + 24, vy + 14, PAL["pink"], 3)
+    # a game controller below the sign
+    cx, cy = px + int(pw * 0.5), py + int(ph * 0.68)
+    cv.rect(cx - 16, cy - 4, 32, 10, PAL["white"])
+    cv.disc(cx - 8, cy + 2, 3, PAL["red"])
+    cv.disc(cx + 8, cy + 2, 3, PAL["blue"])
+
+
+def scene_bank(cv, px, py, pw, ph):
+    """A bank with columns and a rising rate chart."""
     cv.rect(px, py, pw, ph, PAL["paper"])
-    cv.frame(px, py, pw, ph, ink, 3)
-    scene(cv, px + 6, py + 6, 540, ph - 12)
-    tx = px + 540 + 24
-    tw = pw - 540 - 36
-    hy = py + 34
-    used = cv.wrapped(tx + tw // 2, hy, headline, 3, ink, tw)
-    cv.wrapped(tx + tw // 2, hy + used + 22, caption, 2, ink, tw,
-               leading=6)
+    # bank front: pediment and four columns
+    bx = px + int(pw * 0.08)
+    bw = int(pw * 0.5)
+    cv.polygon([(bx, py + int(ph * 0.25)), (bx + bw // 2, py + 4),
+                (bx + bw, py + int(ph * 0.25))], PAL["dark"])
+    for i in range(4):
+        cx = bx + int(bw * (0.08 + i * 0.24))
+        cv.rect(cx, py + int(ph * 0.28), 5, int(ph * 0.5), PAL["ink"])
+    cv.rect(bx, py + int(ph * 0.78), bw, 4, PAL["ink"])
+    # pound sign on the pediment: a gold coin
+    cv.disc(bx + bw // 2, py + int(ph * 0.14), 5, PAL["gold"])
+    cv.ring(bx + bw // 2, py + int(ph * 0.14), 5, PAL["ink"])
+    # rising chart on the right
+    ox = px + int(pw * 0.66)
+    oy = py + int(ph * 0.7)
+    cv.segment(ox, oy, ox + int(pw * 0.08), oy - int(ph * 0.18),
+               PAL["red"], 2)
+    cv.segment(ox + int(pw * 0.08), oy - int(ph * 0.18),
+               ox + int(pw * 0.16), oy - int(ph * 0.22), PAL["red"], 2)
+    cv.segment(ox + int(pw * 0.16), oy - int(ph * 0.22),
+               ox + int(pw * 0.28), oy - int(ph * 0.45), PAL["red"], 2)
+    cv.disc(ox + int(pw * 0.28), oy - int(ph * 0.45), 3, PAL["red"])
 
 
-def panel(cv, px, py, pw, ph, scene, headline, caption):
-    """Square panel: picture on top, headline and caption below."""
+def scene_sanctions(cv, px, py, pw, ph):
+    """Australia stamped on a map: sanctions over settlements."""
+    cv.rect(px, py, pw, ph, PAL["sky"])
+    # simplified Australia
+    ax, ay = px + int(pw * 0.28), py + int(ph * 0.18)
+    cv.polygon([(ax, ay + 8), (ax + 10, ay), (ax + 34, ay + 2),
+                (ax + 44, ay + 10), (ax + 38, ay + 20),
+                (ax + 20, ay + 24), (ax + 4, ay + 18)], PAL["tan"])
+    cv.frame(ax - 2, ay - 2, 50, 30, PAL["ink"], 1)
+    # a red stamp across the lower half
+    sx = px + int(pw * 0.12)
+    sy = py + int(ph * 0.62)
+    cv.frame(sx, sy, int(pw * 0.76), int(ph * 0.3), PAL["red"], 2)
+    cv.text(sx + 4, sy + 3, "SANCTIONED", 1, PAL["red"])
+    # a gavel above
+    gx, gy = px + int(pw * 0.72), py + int(ph * 0.12)
+    cv.rect(gx, gy, 14, 5, PAL["table"])
+    cv.segment(gx + 7, gy + 5, gx + 7, gy + 16, PAL["table"], 2)
+
+
+def scene_cyclone(cv, px, py, pw, ph):
+    """Cyclone Akvan spiralling over the Bay of Bengal."""
+    cv.rect(px, py, pw, ph, PAL["sea"])
+    cx, cy = px + int(pw * 0.5), py + int(ph * 0.45)
+    # spiral arms
+    for r in (6, 12, 18, 24):
+        for a in range(0, 270, 6):
+            rad = math.radians(a + r * 8)
+            cv.set(cx + int(r * math.cos(rad)),
+                   cy + int(r * 0.8 * math.sin(rad)), PAL["white"])
+    cv.disc(cx, cy, 4, PAL["gold"])
+    # coastline at the bottom with rain
+    cv.rect(px, py + int(ph * 0.82), pw, int(ph * 0.18), PAL["land"])
+    for i in range(6):
+        rx = px + int(pw * (0.08 + i * 0.15))
+        cv.segment(rx, py + int(ph * 0.55), rx - 3,
+                   py + int(ph * 0.68), PAL["sky"], 1)
+    # warning triangle
+    tx, ty = px + int(pw * 0.06), py + int(ph * 0.08)
+    cv.polygon([(tx, ty + 12), (tx + 7, ty), (tx + 14, ty + 12)],
+               PAL["gold"])
+    cv.text(tx + 5, ty + 4, "!", 1, PAL["ink"])
+
+
+# ---- World map: coarse continents in lon/lat, pins for the leads ----
+CONTINENTS = [
+    # North America
+    [(-168, 66), (-140, 70), (-125, 72), (-110, 73), (-95, 80),
+     (-85, 70), (-75, 62), (-60, 55), (-55, 47), (-70, 42),
+     (-75, 35), (-80, 26), (-85, 20), (-90, 15), (-95, 18),
+     (-105, 22), (-115, 28), (-125, 40), (-125, 50), (-140, 60),
+     (-155, 58), (-165, 60)],
+    # South America
+    [(-80, 10), (-75, 5), (-60, 5), (-50, 0), (-40, -5), (-35, -10),
+     (-40, -20), (-48, -28), (-55, -35), (-65, -40), (-70, -50),
+     (-73, -40), (-70, -30), (-75, -18), (-80, -5)],
+    # Africa
+    [(-17, 15), (-10, 30), (0, 35), (10, 37), (20, 32), (32, 31),
+     (35, 28), (40, 15), (48, 11), (51, 10), (45, 0), (40, -10),
+     (35, -20), (30, -30), (20, -35), (15, -25), (12, -15), (8, 4),
+     (-8, 5), (-15, 10)],
+    # Eurasia
+    [(-10, 36), (-5, 43), (0, 48), (5, 55), (10, 58), (18, 56),
+     (21, 60), (25, 65), (30, 70), (45, 68), (60, 70), (75, 73),
+     (90, 75), (110, 76), (130, 72), (150, 70), (170, 67), (178, 65),
+     (170, 60), (160, 55), (150, 45), (140, 40), (130, 35),
+     (122, 30), (115, 22), (108, 12), (103, 8), (100, 8), (95, 15),
+     (90, 22), (85, 20), (80, 10), (75, 8), (70, 20), (65, 25),
+     (58, 25), (52, 27), (48, 30), (43, 35), (35, 36), (30, 36),
+     (25, 38), (20, 40), (15, 44), (10, 44), (5, 43), (0, 40),
+     (-5, 36), (-10, 36)],
+    # Australia
+    [(113, -22), (114, -30), (115, -35), (120, -34), (130, -32),
+     (135, -35), (140, -38), (145, -38), (150, -37), (153, -27),
+     (150, -22), (146, -19), (142, -11), (137, -12), (132, -11),
+     (126, -14), (122, -17), (118, -20)],
+    # Greenland
+    [(-55, 60), (-45, 60), (-35, 65), (-25, 70), (-30, 75),
+     (-45, 76), (-55, 72)],
+    # New Zealand
+    [(167, -45), (174, -41), (178, -38), (174, -35), (170, -40)],
+    # Japan
+    [(130, 31), (133, 34), (137, 35), (140, 38), (142, 42),
+     (141, 45), (138, 40), (134, 35), (131, 33)],
+    # Britain
+    [(-5, 50), (-2, 53), (0, 53), (1, 51), (-3, 50)],
+]
+
+# (number, lon, lat) for the 13 lead stories.
+PINS = [
+    (1, 48.0, 29.3), (2, 114.1, 22.5), (3, 30.7, 36.9),
+    (4, 34.5, 31.5), (5, 90.4, 23.8), (6, -118.2, 34.2),
+    (7, -72.3, 18.5), (8, 30.7, 46.5), (9, 37.9, 14.7),
+    (10, 174.8, -36.8), (11, -0.1, 51.5), (12, 149.1, -35.3),
+    (13, 80.3, 16.5),
+]
+
+
+def draw_map(cv, x, y, w, h):
+    """Stylised world map with numbered pins for the 13 leads."""
+    cv.rect(x, y, w, h, PAL["sky"])
+    cv.frame(x, y, w, h, PAL["ink"], 2)
+
+    def proj(lon, lat):
+        px = x + int((lon + 170) / 360.0 * w)
+        py = y + int((80 - lat) / 140.0 * h)
+        return (px, py)
+
+    for poly in CONTINENTS:
+        cv.polygon([proj(lon, lat) for lon, lat in poly], PAL["land"])
+    cv.text(x + int(w * 0.05), y + int(h * 0.55), "N. AMERICA", 1,
+            PAL["dark"])
+    cv.text(x + int(w * 0.24), y + int(h * 0.72), "S. AMERICA", 1,
+            PAL["dark"])
+    cv.text(x + int(w * 0.47), y + int(h * 0.55), "AFRICA", 1,
+            PAL["dark"])
+    cv.text(x + int(w * 0.46), y + int(h * 0.12), "EUROPE", 1,
+            PAL["dark"])
+    cv.text(x + int(w * 0.68), y + int(h * 0.32), "ASIA", 1,
+            PAL["dark"])
+    cv.text(x + int(w * 0.82), y + int(h * 0.72), "OCEANIA", 1,
+            PAL["dark"])
+    for num, lon, lat in PINS:
+        px, py = proj(lon, lat)
+        cv.disc(px, py, 7, PAL["red"])
+        cv.ring(px, py, 7, PAL["ink"])
+        label = str(num)
+        cv.text(px - (3 if num < 10 else 6), py - 3, label, 1,
+                PAL["white"])
+
+
+# ---- The 42 stories: 13 illustrated leads, 29 briefs ----
+# (number, region/field tag, scene, headline, deck)
+LEADS = [
+    (1, "MIDDLE EAST - WAR", scene_gulf,
+     "IRAN DRONES HIT US BASES IN THE GULF",
+     "KUWAIT AND BAHRAIN SAY DEFENCES SHOT THE DRONES DOWN. "
+     "NO CASUALTIES REPORTED."),
+    (2, "ASIA - DIPLOMACY", scene_summit,
+     "XI GREETS TRUMP AS APEC OPENS",
+     "SHENZHEN HOSTS THE SUMMIT. PUTIN IS THERE TOO. "
+     "THE FIRST TRILATERAL MEETS THURSDAY."),
+    (3, "CLIMATE", scene_cop,
+     "COP31 SPLIT ON FOSSIL FUELS",
+     "INDONESIA SAYS PHASE DOWN, NOT PHASE OUT, TO 2060. "
+     "THE DRAFT DEAL IS STILL UNAGREED."),
+    (4, "MIDDLE EAST - TRUCE", scene_gaza,
+     "GAZA TRUCE MAY COLLAPSE, BOARD WARNS",
+     "A CEASEFIRE THAT DELIVERS NOTHING VISIBLE CANNOT LAST, "
+     "THE BOARD TELLS THE UN."),
+    (5, "ASIA - LABOUR", scene_bangladesh,
+     "BANGLADESH WAGE PROTESTS SHUT 535 FACTORIES",
+     "WORKERS WANT TK30,000 A MONTH, UP FROM TK12,500. "
+     "300 ARRESTED IN TWO DAYS."),
+    (6, "SCIENCE - SPACE", scene_voyager,
+     "VOYAGER 1, ONE LIGHT-DAY FROM EARTH",
+     "25.9BN KM OUT, THE PROBE IS THE FIRST HUMAN OBJECT "
+     "A LIGHT-DAY AWAY. SIGNALS TAKE A DAY."),
+    (7, "AMERICAS - SECURITY", scene_haiti,
+     "BUKELE BLASTS GANG BOSS MANSION",
+     "HELICOPTERS HIT JEFF LAROSE'S HILLSIDE HOME IN HAITI "
+     "ON THE VERTIERES ANNIVERSARY."),
+    (8, "EUROPE - WAR", scene_odesa,
+     "RUSSIAN STRIKES KILL AT LEAST 5 IN UKRAINE",
+     "ODESA HIT: 4 DEAD, 13 HURT. UKRAINE SHOT DOWN "
+     "126 OF 141 DRONES OVERNIGHT."),
+    (9, "AFRICA - SECURITY", scene_badme,
+     "ETHIOPIA AND ERITREA MASS TROOPS",
+     "ARMIES FACE OFF NEAR BADME. MONITORS FEAR OUTRIGHT "
+     "WAR IN THE HORN OF AFRICA."),
+    (10, "CULTURE - GAMES", scene_gta,
+     "GTA VI IS OUT AFTER 13 YEARS",
+     "NZ PLAYS FIRST AT MIDNIGHT. CRITICS GIVE 99/100. "
+     "NO PC VERSION."),
+    (11, "ECONOMY", scene_bank,
+     "WAR LENGTH TO SET BANK RATES",
+     "BAILEY: A LONG IRAN WAR MEANS HIGHER RATES. "
+     "UK INFLATION 3.6%."),
+    (12, "OCEANIA - DIPLOMACY", scene_sanctions,
+     "AUSTRALIA SANCTIONS SETTLER LEADER WEISS",
+     "3 PEOPLE, 4 GROUPS BLACKLISTED OVER "
+     "WEST BANK SETTLEMENTS."),
+    (13, "ASIA - WEATHER", scene_cyclone,
+     "CYCLONE AKVAN NEARS INDIA'S EAST COAST",
+     "ODISHA SHUTS SCHOOLS. LANDFALL FRIDAY, "
+     "WINDS TO 110 KM/H."),
+]
+
+BRIEFS = [
+    "YEMEN: GULF STATES ALSO SHOT DOWN MISSILES AND DRONES FROM HOUTHI ALLIES.",
+    "WEST BANK: BRITAIN SANCTIONED 8 SETTLEMENT FIRMS ON TUESDAY.",
+    "GAZA: ISRAEL'S KATZ SAYS NO WITHDRAWAL UNTIL HAMAS IS DISMANTLED.",
+    "MYANMAR: WORLD COURT RULES THURSDAY ON THE ROHINGYA GENOCIDE CASE.",
+    "USA: HOUSE DEMOCRATS NOMINATE JEFFRIES FOR SPEAKER, 251-11.",
+    "USA: GAO SAYS 4 TOP AI MODELS DREW UP MASS-CASUALTY ATTACK PLANS.",
+    "USA: SENATORS INTRODUCE BILL TO FORCE STEALTH BOTS TO IDENTIFY.",
+    "USA: OUTAGE WAVE REACHES THE NSA AFTER APPLE, BANKS, AIRLINES.",
+    "USA: LA AND LONG BEACH PORT TALKS STALL; 250 WATCHMEN MAY STRIKE.",
+    "USA: BLAST AT CLEAN HARBORS WASTE PLANT NEAR HOUSTON; 1 IN HOSPITAL.",
+    "USA: PEW: TWO-THIRDS DISAPPROVE OF TRUMP ON THE RUSSIA-UKRAINE WAR.",
+    "RELIGION: PEW: MUSLIMS TO PASS CHRISTIANS AS TOP FAITH BY 2035.",
+    "UKRAINE: 1,000+ RUSSIAN ATTACKS ON ENERGY SITES SINCE SEPTEMBER.",
+    "UK: INFLATION HIT 3.6% IN OCTOBER, HIGHEST IN A YEAR.",
+    "COP31: 11 COUNTRIES UNVEIL FOSSIL-FUEL PHASE-OUT ROADMAPS.",
+    "COP31: TALKS CLOSE FRIDAY 20 NOV IN ANTALYA, TURKIYE.",
+    "APEC: PUTIN EXPECTS BIG BENEFIT FROM THURSDAY'S TRILATERAL.",
+    "APEC: XI URGES FREE TRADE AND HITS OUT AT PROTECTIONISM.",
+    "GULF: FIRST IRANIAN ATTACK ON KUWAIT SINCE SEPTEMBER.",
+    "BANGLADESH: WAGE BOARD MEETS AGAIN ON 23 NOV.",
+    "BANGLADESH: 300 ARRESTED AS PROTESTS TURN VIOLENT.",
+    "ETHIOPIA: ERITREA DENIES CROSSING INTO TIGRAY.",
+    "HAITI: 223RD ANNIVERSARY OF THE BATTLE OF VERTIERES.",
+    "HAITI: UN-BACKED FORCE SAYS IT TOOK NO PART IN THE RAID.",
+    "GTA VI: US UNLOCKS AT MIDNIGHT EASTERN; NO PC VERSION AT LAUNCH.",
+    "GTA VI: LEAVE REQUESTS UP 32% AROUND 19 NOV, SAYS REMOTE.",
+    "CYCLONE: LANDFALL DUE FRIDAY NOON, WINDS TO 110 KM/H.",
+    "CYCLONE: ANDHRA ON RED ALERT FOR 19-20 NOV.",
+    "SPACE: A RADIO SIGNAL TO VOYAGER 1 NOW TAKES A FULL DAY EACH WAY.",
+]
+
+
+def lead_card(cv, x, y, w, h, num, tag, scene, headline, deck):
     ink = PAL["ink"]
-    cv.rect(px, py, pw, ph, PAL["paper"])
-    cv.frame(px, py, pw, ph, ink, 3)
-    scene_h = int(ph * 0.50)
-    scene(cv, px + 6, py + 6, pw - 12, scene_h)
-    hy = py + 6 + scene_h + 14
-    used = cv.wrapped(px + pw // 2, hy, headline, 3, ink, pw - 28)
-    cv.wrapped(px + pw // 2, hy + used + 12, caption, 2, ink,
-               pw - 28, leading=5)
-
-
-def masthead(cv):
-    ink = PAL["ink"]
-    cv.centered(WIDTH // 2, 28, "THE WORLD IN ONE PICTURE", 5, ink)
-    cv.hline(24, 94, WIDTH - 48, ink, 3)
-    cv.centered(WIDTH // 2, 106, "WEDNESDAY 18 NOVEMBER 2026", 4, ink)
-    cv.hline(24, 150, WIDTH - 48, ink, 3)
-
-
-def footer(cv):
-    ink = PAL["ink"]
-    y0 = 862
-    cv.hline(24, y0, WIDTH - 48, ink, 3)
-    cv.centered(WIDTH // 2, y0 + 12, "ALSO IN THE NEWS", 3, ink)
-    items = [
-        "- EBOLA IN DR CONGO PASSES 11,000 CASES",
-        "- US LOSES MEASLES-FREE STATUS AFTER 26 YEARS",
-        "- RUSSIAN MILITARY PLANE CRASHES IN SIBERIA: 19 DEAD",
-    ]
-    for i, item in enumerate(items):
-        cv.text(48, y0 + 52 + i * 26, item, 2, ink)
+    cv.rect(x, y, w, h, PAL["paper"])
+    cv.frame(x, y, w, h, ink, 2)
+    cv.text(x + 8, y + 5, str(num) + " " + tag, 1, PAL["red"])
+    scene(cv, x + 6, y + 14, w - 12, 46)
+    hy = y + 64
+    used = cv.wrapped(x + w // 2, hy, headline, 2, ink, w - 16,
+                      leading=2, max_lines=2)
+    cv.wrapped(x + w // 2, hy + used + 4, deck, 1, PAL["dark"],
+               w - 16, leading=2, max_lines=2)
 
 
 def main():
@@ -477,21 +815,66 @@ def main():
     ink = PAL["ink"]
     cv.rect(0, 0, WIDTH, HEIGHT, PAL["cream"])
     cv.frame(0, 0, WIDTH, HEIGHT, ink, 8)
-    masthead(cv)
-    lead_panel(cv, 24, 166, 976, 312, scene_gulf,
-               "IRAN STRIKES US BASES IN KUWAIT AND BAHRAIN",
-               "TEHRAN SAYS IT TARGETED ALI AL SALEM AIR BASE "
-               "AFTER US JETS HIT QESHM ISLAND.")
-    panel(cv, 24, 494, 312, 352, scene_kerch, "KERCH BRIDGE HIT AGAIN",
-          "UKRAINE STRIKES THE CRIMEA LINK FOR A SECOND DAY; "
-          "PART OF THE ROAD SPAN FALLS.")
-    panel(cv, 356, 494, 312, 352, scene_summit, "XI AND PUTIN MEET",
-          "THE TWO LEADERS TALK IN SHENZHEN AHEAD OF THURSDAY'S "
-          "THREE-WAY SUMMIT WITH TRUMP.")
-    panel(cv, 688, 494, 312, 352, scene_senate, "DEMOCRATS TAKE SENATE",
-          "MARY PELTOLA WINS ALASKA; DEMOCRATS HOLD A 56-44 "
-          "MAJORITY IN THE SENATE.")
-    footer(cv)
+
+    # Masthead.
+    cv.centered(WIDTH // 2, 16, "THE WORLD IN ONE PICTURE", 4, ink)
+    cv.hline(24, 52, WIDTH - 48, ink, 2)
+    cv.centered(WIDTH // 2, 60, "WEDNESDAY 18 NOVEMBER 2026", 3, ink)
+    cv.hline(24, 88, WIDTH - 48, ink, 2)
+
+    # Counts band.
+    cv.rect(24, 94, WIDTH - 48, 22, ink)
+    cv.centered(WIDTH // 2, 100,
+                "42 STORIES - 7 REGIONS - 8 FIELDS - 13 ILLUSTRATED",
+                2, PAL["cream"])
+
+    # Region strip and day-in-numbers strip.
+    cv.centered(WIDTH // 2, 122,
+                "MIDDLE EAST - ASIA - EUROPE - AFRICA - "
+                "N. AMERICA - CARIBBEAN - OCEANIA", 1, PAL["dark"])
+    cv.centered(WIDTH // 2, 138,
+                "5 KILLED IN ODESA - 535 FACTORIES SHUT - 25.9BN KM - "
+                "141 DRONES - 99/100 - 3.6% - 251-11", 1, ink)
+
+    # Lead cards: three rows of three, then a row of four.
+    rows = [(156, 325, LEADS[0:3]), (284, 325, LEADS[3:6]),
+            (412, 325, LEADS[6:9]), (540, 242, LEADS[9:13])]
+    for ry, cw, cards in rows:
+        gap = 8 if len(cards) == 3 else 8
+        x = 16
+        for num, tag, scene, headline, deck in cards:
+            lead_card(cv, x, ry, cw, 124, num, tag, scene, headline,
+                      deck)
+            x += cw + gap
+
+    # World map with numbered pins.
+    cv.centered(WIDTH // 2, 668, "WHERE IT HAPPENED - 13 LEADS PINNED",
+                1, ink)
+    draw_map(cv, 24, 680, WIDTH - 48, 116)
+
+    # Briefs 14-42 in two columns.
+    cv.centered(WIDTH // 2, 802, "ALSO ON WEDNESDAY 18 NOVEMBER", 2,
+                ink)
+    cv.hline(24, 822, WIDTH - 48, ink, 1)
+    left = BRIEFS[:15]
+    right = BRIEFS[15:]
+    for i, brief in enumerate(left):
+        cv.text(24, 830 + i * 10, str(14 + i) + ". " + brief, 1, ink)
+    for i, brief in enumerate(right):
+        cv.text(524, 830 + i * 10, str(29 + i) + ". " + brief, 1, ink)
+
+    # Footer: date check and sources.
+    cv.hline(24, 976, WIDTH - 48, ink, 2)
+    cv.wrapped(WIDTH // 2, 982,
+               "DATE CHECK - LEFT OUT BECAUSE FIRST REPORTED 17 NOV: "
+               "PELTOLA WINS ALASKA SENATE SEAT; NVIDIA'S $115.8BN "
+               "QUARTER; PRAGUE TRAIN CRASH; MONGOLIA'S PRESIDENT "
+               "RESIGNS; UKRAINE HITS THE KERCH BRIDGE.",
+               1, PAL["red"], WIDTH - 48, leading=2, max_lines=2)
+    cv.centered(WIDTH // 2, 1004,
+                "SOURCES: REUTERS, AP, AFP, AL JAZEERA, BLOOMBERG, "
+                "BBC, NASA, IMD, PEW RESEARCH CENTER.", 1, PAL["dark"])
+
     outdir = os.environ.get("MAKEFUN_OUTPUT_DIR")
     if outdir:
         os.makedirs(outdir, exist_ok=True)
